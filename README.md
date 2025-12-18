@@ -12,6 +12,8 @@ Cascade is Cloudera's AI assistant that helps you interact with and manage your 
 - Integration with Cloudera's data platform
 - Secure access to enterprise AI capabilities
 
+![Verify](images/Verify.png)
+
 ## Key Features
 
 - **Cloudera Model Integration**: Seamlessly work with Cloudera-hosted LLMs and embedding models
