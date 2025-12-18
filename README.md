@@ -1,54 +1,125 @@
-# Cloudera AI Inference Service Client
+# Windsurf: Cloudera AI Model Integration
 
-![Verify](images/Verify.png)
-![Cloudera AI Inference Models](images/CAI_Inference_Models.png)
+![Windsurf Agent](images/Cascade_Agent.png)
 
-A Python client for interacting with AI models hosted on Cloudera's AI Inference Service. This library provides a clean, Pythonic interface for deploying, managing, and querying models with enterprise-grade security and scalability.
+Windsurf is a powerful framework for working with Cloudera-hosted AI models, providing seamless integration with Cascade for building intelligent applications. This library offers a unified interface to deploy, manage, and query models with enterprise-grade security and scalability.
 
-## Features
+## What is Cascade?
 
-- **Model Management**: Deploy, update, and manage AI models on Cloudera AI Inference Service
-- **Enterprise Security**: Built-in authentication and authorization for secure model access
-- **Scalable Inference**: Efficiently handle high-volume inference requests
-- **Model Monitoring**: Track performance metrics and usage statistics
-- **Multiple Framework Support**: Compatible with popular ML frameworks (PyTorch, TensorFlow, etc.)
-- **Example Use Cases**:
-  - **RAG Pipelines**: Build Retrieval Augmented Generation systems
-  - **Text Generation**: Deploy and query large language models
-  - **Embedding Models**: Generate and work with text embeddings
-  - **Custom Models**: Deploy your own trained models
+Cascade is Cloudera's AI assistant that helps you interact with and manage your AI workflows. It provides:
+- Natural language interface to work with models
+- Automated model selection and optimization
+- Integration with Cloudera's data platform
+- Secure access to enterprise AI capabilities
+
+## Key Features
+
+- **Cloudera Model Integration**: Seamlessly work with Cloudera-hosted LLMs and embedding models
+- **Cascade Integration**: Built-in support for Cascade's AI assistant capabilities
+- **Enterprise-Ready**:
+  - Secure authentication and role-based access control
+  - Model versioning and lifecycle management
+  - Performance monitoring and logging
+- **Developer Friendly**:
+  - Simple, Pythonic API
+  - Pre-built components for common AI workflows
+  - Extensible architecture for custom use cases
+
+## Getting Started with Cascade
+
+### 1. Initialize Cascade
+
+```python
+from windsurf_agent.agent import CascadeAgent
+
+# Initialize with your Cloudera credentials
+agent = CascadeAgent(
+    cloudera_endpoint="https://your-cloudera-instance.cloudera.site",
+    api_key="your_api_key_here"
+)
+
+# Start an interactive session
+response = agent.chat("What models are available?")
+print(response)
+```
+
+### 2. Deploy and Use Models
+
+```python
+# Deploy a model
+deployment = agent.deploy_model(
+    model_name="llama-2-13b-chat",
+    instance_type="gpu.medium",
+    min_instances=1,
+    max_instances=3
+)
+
+# Use the deployed model
+response = deployment.generate("Explain how Cascade helps with model deployment")
+print(response)
+```
+
+### 3. Build a RAG Pipeline
+
+```python
+# Create a RAG pipeline with Cascade
+rag = agent.create_rag_pipeline(
+    embedding_model="e5-large-v2",
+    llm_model="llama-2-13b-chat",
+    vector_store="cloudera-vector-store"
+)
+
+# Add documents from Cloudera Data Platform (CDP)
+rag.add_documents_from_cdp(
+    database="enterprise_knowledge_base",
+    table="product_docs"
+)
+
+# Query with Cascade's understanding
+response = rag.query(
+    "How do I optimize model performance in production?",
+    use_cascade=True  # Leverage Cascade's understanding
+)
+print(response["answer"])
+```
 
 ![RAG Example](images/rag_example.png)
 
 ## Installation
 
 ```bash
-pip install cloudera-ai-inference
+# Install the Windsurf client library
+pip install windsurf-ai
+
+# For RAG capabilities with Cascade
+pip install windsurf-ai[rag]
 ```
 
 ## Configuration
 
-1. **Set up credentials**
+1. **Set up environment variables**
    Create a `.env` file in your project root:
 
    ```env
-   # Required for Cloudera AI Inference Service
-   CLOUDERA_AI_ENDPOINT=https://your-cloudera-ai-instance.cloudera.site
-   CLOUDERA_AI_API_KEY=your_api_key_here
+   # Required for Cloudera and Cascade
+   CLOUDERA_ENDPOINT=https://your-cloudera-instance.cloudera.site
+   CLOUDERA_API_KEY=your_api_key_here
    
-   # Optional: Default model configurations
-   DEFAULT_LLM_MODEL=llama-2-13b-chat
+   # Optional: Default configurations
+   CASCADE_ENABLED=true
+   DEFAULT_LLM=llama-2-13b-chat
    DEFAULT_EMBEDDING_MODEL=e5-large-v2
    ```
 
-2. **Or configure programmatically**
+2. **Initialize with Cascade**
    ```python
-   from cloudera_ai import configure
+   from windsurf_agent import CascadeAgent
    
-   configure(
-       endpoint="https://your-cloudera-ai-instance.cloudera.site",
-       api_key="your_api_key_here"
-   )
+   # Initialize with Cascade
+   agent = CascadeAgent.from_env()
+   
+   # Verify connection
+   print(f"Connected to {agent.endpoint} as {agent.user_id}")
    ```
 
 ## Cloudera Integration
