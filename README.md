@@ -26,6 +26,61 @@ Cascade is Cloudera's AI assistant that helps you interact with and manage your 
   - Pre-built components for common AI workflows
   - Extensible architecture for custom use cases
 
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file in your project root with the following variables:
+
+```ini
+# Required: LLM Configuration
+WINDSURF_LLM_BASE_URL=your_llm_api_endpoint
+WINDSURF_LLM_API_KEY=your_api_key_here
+
+# Optional LLM Settings
+WINDSURF_LLM_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1  # Default model
+WINDSURF_LLM_TEMPERATURE=0.7
+WINDSURF_LLM_MAX_TOKENS=2048
+WINDSURF_LLM_TIMEOUT=60
+WINDSURF_LLM_MAX_RETRIES=3
+
+# Required: Embedding Configuration
+WINDSURF_EMBEDDING_BASE_URL=your_embedding_api_endpoint
+WINDSURF_EMBEDDING_API_KEY=your_api_key_here
+
+# Optional Embedding Settings
+WINDSURF_EMBEDDING_MODEL=text-embedding-3-large
+WINDSURF_EMBEDDING_TIMEOUT=30
+WINDSURF_EMBEDDING_MAX_RETRIES=3
+
+# Vector Store Configuration (Optional)
+VECTOR_STORE_DIR=./vector_store  # Directory to persist vector data
+VECTOR_STORE_COLLECTION=documents
+VECTOR_STORE_SIMILARITY=cosine  # cosine, euclidean, or dotproduct
+VECTOR_STORE_DIMENSION=1536
+
+# Logging
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+```
+
+### Loading Environment Variables
+
+Install the required package to load environment variables:
+
+```bash
+pip install python-dotenv
+```
+
+Then in your Python code:
+
+```python
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+```
+
 ## Getting Started with Cascade
 
 ### 1. Initialize Cascade
