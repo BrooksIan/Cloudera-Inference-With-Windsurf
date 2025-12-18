@@ -1,12 +1,11 @@
 # Windsurf: Cloudera AI Model Integration
 
-![Windsurf Agent](images/Cascade_Agent.png)
-
 Windsurf is a powerful framework for working with Cloudera-hosted AI models, providing seamless integration with Cascade for building intelligent applications. This library offers a unified interface to deploy, manage, and query models with enterprise-grade security and scalability.
 
 ## What is Cascade?
 
 Cascade is Cloudera's AI assistant that helps you interact with and manage your AI workflows. It provides:
+
 - Natural language interface to work with models
 - Automated model selection and optimization
 - Integration with Cloudera's data platform
@@ -85,8 +84,6 @@ response = rag.query(
 print(response["answer"])
 ```
 
-![RAG Example](images/rag_example.png)
-
 ## Installation
 
 ```bash
@@ -114,6 +111,7 @@ pip install windsurf-ai[rag]
    ```
 
 2. **Initialize with Cascade**
+
    ```python
    from windsurf_agent import CascadeAgent
    
@@ -186,7 +184,6 @@ print("Answer:", response["answer"])
 ```
 
 ![LLM Example](images/llm_example.png)
-```
 
 ## Advanced Usage
 
@@ -227,7 +224,7 @@ document_ids = vector_store.add_documents(["Document 1 text", "Document 2 text"]
 results = vector_store.similarity_search("search query", k=3)
 ```
 
-## Configuration
+## Vector Store Configuration
 
 Configuration can be provided through:
 
