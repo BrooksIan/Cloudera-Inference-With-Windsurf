@@ -1,85 +1,98 @@
-# windsurf_agent/config.py
-from pydantic import BaseModel, Field, validator, HttpUrl, field_validator
-from typing import Optional, Dict, Any
 import os
-from pathlib import Path
-from urllib.parse import urljoin
+from dataclasses import dataclass
+from typing import Optional
 
-class EmbeddingConfig(BaseModel):
-    """Configuration for the embedding client."""
-    base_url: str = Field(..., description="Base URL for the embedding API")
-    api_key: str = Field(..., description="API key for authentication")
-    model: str = Field(..., description="Model to use for embeddings")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    max_retries: int = Field(3, description="Maximum number of retries for failed requests")
-
-    class Config:
-        env_prefix = "WINDSURF_EMBEDDING_"
-
-class LLMConfig(BaseModel):
-    """Configuration for the LLM client."""
-    base_url: str = Field(..., description="Base URL for the LLM API")
-    api_key: str = Field(..., description="API key for authentication")
-    model: str = Field(..., description="Model to use for completions")
-    temperature: float = Field(0.7, description="Temperature for generation")
-    max_tokens: int = Field(2048, description="Maximum number of tokens to generate")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    max_retries: int = Field(3, description="Maximum number of retries for failed requests")
-
-    class Config:
-        env_prefix = "WINDSURF_LLM_"
-
-class VectorStoreConfig(BaseModel):
-    """Configuration for the vector store."""
-    persist_dir: Optional[Path] = Field(None, description="Directory to persist the vector store")
-    collection_name: str = Field("documents", description="Name of the collection in the vector store")
-    similarity_metric: str = Field("cosine", description="Similarity metric to use (cosine, euclidean, dotproduct)")
-    dimension: int = Field(1024, description="Dimension of the embeddings")
-
-    @field_validator('similarity_metric')
+@dataclass
+class LLMConfig:
+    """Configuration for LLM client."""
+    base_url: str
+    api_key: str
+    model: str = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+    temperature: float = 0.2
+    max_tokens: int = 1024
+    timeout: int = 30
+    max_retries: int = 3
+    
     @classmethod
-    def validate_similarity_metric(cls, v):
-        if v not in ["cosine", "euclidean", "dotproduct"]:
-            raise ValueError("similarity_metric must be one of: cosine, euclidean, dotproduct")
-        return v
+    def from_env(cls) -> 'LLMConfig':
+        """Create config from environment variables."""
+        return cls(
+            base_url=os.getenv("WINDSURF_LLM_BASE_URL", ""),
+            api_key=os.getenv("WINDSURF_LLM_API_KEY", ""),
+            model=os.getenv("WINDSURF_LLM_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5"),
+            temperature=float(os.getenv("WINDSURF_LLM_TEMPERATURE", "0.2")),
+            max_tokens=int(os.getenv("WINDSURF_LLM_MAX_TOKENS", "1024")),
+            timeout=int(os.getenv("WINDSURF_LLM_TIMEOUT", "30")),
+            max_retries=int(os.getenv("WINDSURF_LLM_MAX_RETRIES", "3"))
+        )
 
-class Config(BaseModel):
-    """Main configuration class."""
-    embedding: EmbeddingConfig
+@dataclass
+class EmbeddingConfig:
+    """Configuration for Embedding client."""
+    base_url: str
+    api_key: str
+    model: str = "nvidia/nv-embedqa-e5-v5"
+    query_model: str = "nvidia/nv-embedqa-e5-v5-query"
+    passage_model: str = "nvidia/nv-embedqa-e5-v5-passage"
+    max_retries: int = 3
+    timeout: int = 30
+    
+    @classmethod
+    def from_env(cls) -> 'EmbeddingConfig':
+        """Create config from environment variables."""
+        return cls(
+            base_url=os.getenv("WINDSURF_EMBEDDING_BASE_URL", ""),
+            api_key=os.getenv("WINDSURF_EMBEDDING_API_KEY", ""),
+            model=os.getenv("WINDSURF_EMBEDDING_MODEL", "nvidia/nv-embedqa-e5-v5"),
+            query_model=os.getenv("WINDSURF_EMBEDDING_QUERY_MODEL", "nvidia/nv-embedqa-e5-v5-query"),
+            passage_model=os.getenv("WINDSURF_EMBEDDING_PASSAGE_MODEL", "nvidia/nv-embedqa-e5-v5-passage"),
+            max_retries=int(os.getenv("WINDSURF_EMBEDDING_MAX_RETRIES", "3")),
+            timeout=int(os.getenv("WINDSURF_EMBEDDING_TIMEOUT", "30"))
+        )
+
+@dataclass
+class VectorStoreConfig:
+    """Configuration for Vector Store."""
+    dimension: int = 1024
+    embedding_dimension: int = 1024
+    index_type: str = "faiss"
+    similarity_metric: str = "cosine"
+    collection_name: str = "default"
+    persist_dir: Optional[str] = None
+    
+    @classmethod
+    def from_env(cls) -> 'VectorStoreConfig':
+        """Create config from environment variables."""
+        return cls(
+            dimension=int(os.getenv("WINDSURF_EMBEDDING_DIMENSION", "1024")),
+            embedding_dimension=int(os.getenv("WINDSURF_EMBEDDING_DIMENSION", "1024")),
+            index_type=os.getenv("WINDSURF_VECTOR_INDEX_TYPE", "faiss"),
+            similarity_metric=os.getenv("WINDSURF_VECTOR_SIMILARITY_METRIC", "cosine"),
+            collection_name=os.getenv("WINDSURF_VECTOR_COLLECTION_NAME", "default"),
+            persist_dir=os.getenv("WINDSURF_VECTOR_PERSIST_DIR")
+        )
+
+@dataclass
+class Config:
+    """Main configuration class containing all sub-configurations."""
     llm: LLMConfig
+    embedding: EmbeddingConfig
     vector_store: VectorStoreConfig
-    log_level: str = Field("INFO", description="Logging level")
-
-    @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> 'Config':
-        """Create configuration from dictionary."""
-        return cls(**config_dict)
-
+    
     @classmethod
     def from_env(cls) -> 'Config':
-        """Create configuration from environment variables."""
+        """Create config from environment variables."""
         return cls(
-            embedding=EmbeddingConfig(
-                base_url=os.getenv("WINDSURF_EMBEDDING_BASE_URL", ""),
-                api_key=os.getenv("WINDSURF_EMBEDDING_API_KEY", ""),
-                model=os.getenv("WINDSURF_EMBEDDING_MODEL", "text-embedding-3-large"),
-                timeout=int(os.getenv("WINDSURF_EMBEDDING_TIMEOUT", "30")),
-                max_retries=int(os.getenv("WINDSURF_EMBEDDING_MAX_RETRIES", "3")),
-            ),
-            llm=LLMConfig(
-                base_url=os.getenv("WINDSURF_LLM_BASE_URL", ""),
-                api_key=os.getenv("WINDSURF_LLM_API_KEY", ""),
-                model=os.getenv("WINDSURF_LLM_MODEL", "gpt-4"),
-                temperature=float(os.getenv("WINDSURF_LLM_TEMPERATURE", "0.7")),
-                max_tokens=int(os.getenv("WINDSURF_LLM_MAX_TOKENS", "2048")),
-                timeout=int(os.getenv("WINDSURF_LLM_TIMEOUT", "60")),
-                max_retries=int(os.getenv("WINDSURF_LLM_MAX_RETRIES", "3")),
-            ),
-            vector_store=VectorStoreConfig(
-                persist_dir=os.getenv("VECTOR_STORE_DIR"),
-                collection_name=os.getenv("VECTOR_STORE_COLLECTION", "documents"),
-                similarity_metric=os.getenv("VECTOR_STORE_SIMILARITY", "cosine"),
-                dimension=int(os.getenv("VECTOR_STORE_DIMENSION", "1536")),
-            ),
-            log_level=os.getenv("LOG_LEVEL", "INFO"),
+            llm=LLMConfig.from_env(),
+            embedding=EmbeddingConfig.from_env(),
+            vector_store=VectorStoreConfig.from_env()
+        )
+    
+    @classmethod
+    def from_dict(cls, config_dict: dict) -> 'Config':
+        """Create config from dictionary."""
+        return cls(
+            llm=LLMConfig(**config_dict.get("llm", {})),
+            embedding=EmbeddingConfig(**config_dict.get("embedding", {})),
+            vector_store=VectorStoreConfig(**config_dict.get("vector_store", {}))
         )

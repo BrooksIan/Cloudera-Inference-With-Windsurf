@@ -25,21 +25,34 @@ class WindsurfEmbeddingClient:
     def __init__(self, config: EmbeddingConfig):
         self.config = config
         self.session = requests.Session()
-        self.session.headers.update({
+        
+        # Set headers - include Cloudera-specific headers if needed
+        headers = {
             "Authorization": f"Bearer {config.api_key}",
             "Content-Type": "application/json"
-        })
+        }
+        
+        # Add Cloudera-specific headers for ML endpoints
+        if 'endpoints' in config.base_url.lower():
+            headers.update({
+                "X-Requested-By": "cascade-agent",
+                "X-XSRF-Header": "true"
+            })
+            
+        self.session.headers.update(headers)
 
     # In embedding_client.py, find the _make_request method and update it:
     def _make_request(self, endpoint: str, payload: dict) -> Any:
         """Make a request to the API with retries and error handling."""
         # For Cloudera ML endpoints, use the base URL as-is and include model in the payload
-        if 'endpoints' in self.config.base_url.lower():
-            # For Cloudera ML, the URL should be the base URL + /v1/embeddings
-            url = self.config.base_url.rstrip('/')
-            if not url.endswith('/v1'):
-                url = f"{url}/v1"
-            url = f"{url}/embeddings"
+        is_cloudera_ml = 'endpoints' in self.config.base_url.lower()
+        logger.info(f"Is Cloudera ML endpoint: {is_cloudera_ml}")
+        logger.info(f"Base URL: {self.config.base_url}")
+        
+        if is_cloudera_ml:
+            # For Cloudera ML, append /embeddings to the base URL
+            url = f"{self.config.base_url.rstrip('/')}/embeddings"
+            logger.info(f"Using Cloudera ML URL: {url}")
             
             # Ensure the payload has the required input_type for Cloudera ML
             if 'input_type' not in payload:
@@ -47,6 +60,7 @@ class WindsurfEmbeddingClient:
         else:
             # For standard endpoints, append the endpoint to the base URL
             url = f"{self.config.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+            logger.info(f"Using standard endpoint URL: {url}")
         
         logger.info(f"Using URL: {url}")
         logger.info(f"Full request payload: {json.dumps(payload, indent=2)}")
@@ -135,10 +149,21 @@ class WindsurfEmbeddingClient:
         try:
             is_cloudera_ml = 'endpoints' in self.config.base_url.lower()
             
-            # Create the payload with model and input
+            # Create payload with model and input
+            # Select appropriate model based on input_type for Cloudera ML
+            if is_cloudera_ml and input_type:
+                if input_type == 'query':
+                    model = self.config.query_model
+                elif input_type == 'passage':
+                    model = self.config.passage_model
+                else:
+                    model = self.config.model
+            else:
+                model = self.config.model
+                
             payload = {
                 "input": texts,
-                "model": self.config.model  # Always include model in payload for Cloudera ML
+                "model": model
             }
             
             # Add input_type if specified

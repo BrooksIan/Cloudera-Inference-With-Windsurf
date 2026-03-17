@@ -1,3 +1,4 @@
+import os
 import pytest
 import json
 import responses
@@ -7,15 +8,24 @@ from windsurf_agent.exceptions import LLMError
 
 @pytest.fixture
 def llm_config():
-    return LLMConfig(
-        base_url="https://test-llm.windsurf.ai/v1",
-        api_key="test_api_key",
-        model="test-llm-model",
+    config = LLMConfig(
+        base_url=os.getenv("WINDSURF_LLM_BASE_URL", ""),
+        api_key=os.getenv("WINDSURF_LLM_API_KEY", "test_api_key"),
+        model=os.getenv("WINDSURF_LLM_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5"),
         temperature=0.7,
         max_tokens=100,
         timeout=30,
         max_retries=3
     )
+    
+    print(f"\n=== LLM Configuration Validation ===")
+    print(f"LLM Base URL: {config.base_url}")
+    print(f"LLM Model: {config.model}")
+    print(f"Temperature: {config.temperature}")
+    print(f"Max Tokens: {config.max_tokens}")
+    print(f"===================================\n")
+    
+    return config
 
 @pytest.fixture
 def mock_completion_response():
@@ -29,9 +39,11 @@ def mock_completion_response():
 
 def test_complete_success(llm_config, mock_completion_response):
     with responses.RequestsMock() as rsps:
+        # Use the actual base URL from config
+        completions_url = f"{llm_config.base_url.rstrip('/')}/completions"
         rsps.add(
             responses.POST,
-            "https://test-llm.windsurf.ai/v1/completions",
+            completions_url,
             json=mock_completion_response,
             status=200
         )
@@ -52,9 +64,11 @@ def test_chat_success(llm_config):
     }
     
     with responses.RequestsMock() as rsps:
+        # Use the actual base URL from config
+        chat_url = f"{llm_config.base_url.rstrip('/')}/chat/completions"
         rsps.add(
             responses.POST,
-            "https://test-llm.windsurf.ai/v1/chat/completions",
+            chat_url,
             json=mock_response,
             status=200
         )

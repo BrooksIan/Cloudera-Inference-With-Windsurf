@@ -15,8 +15,8 @@ if env_path.exists():
 def create_test_embedding(seed: int = 0) -> np.ndarray:
     """Create a deterministic test embedding with the specified seed."""
     np.random.seed(seed)
-    # Create a 1536-dimensional embedding with small values
-    embedding = np.random.normal(0, 0.02, 1536).astype(np.float32)
+    # Create a 1024-dimensional embedding with small values (matching actual model output)
+    embedding = np.random.normal(0, 0.02, 1024).astype(np.float32)
     # Normalize to unit length for cosine similarity
     return embedding / np.linalg.norm(embedding)
 
@@ -44,29 +44,8 @@ def vector_store_config():
         persist_dir=None,
         collection_name="test-collection",
         similarity_metric="cosine",
-        dimension=1536  # Match the dimension used in create_test_embedding
+        dimension=int(os.getenv("WINDSURF_VECTOR_STORE_DIMENSION", "1024"))  # Match the dimension used in create_test_embedding
     )
-@pytest.fixture
-def vector_store_config():
-    """Fixture for creating a VectorStoreConfig with test values."""
-    return VectorStoreConfig(
-        persist_dir=None,
-        collection_name="test-collection",
-        similarity_metric="cosine",
-        dimension=1536  # Match the dimension used in create_test_embedding
-    )
-
-
-@pytest.fixture
-def vector_store_config():
-    """Fixture for creating a VectorStoreConfig with test values."""
-    return VectorStoreConfig(
-        persist_dir=None,
-        collection_name="test-collection",
-        similarity_metric="cosine",
-        dimension=1536  # Match the dimension used in create_test_embedding
-    )
-
 
 def test_add_and_retrieve_document(vector_store_config):
     """Test adding and retrieving a document."""
@@ -89,7 +68,9 @@ def test_add_and_retrieve_document(vector_store_config):
 
 def test_similarity_search(sample_documents):
     """Test similarity search."""
-    config = VectorStoreConfig()
+    config = VectorStoreConfig(
+        dimension=int(os.getenv("WINDSURF_VECTOR_STORE_DIMENSION", "1024"))
+    )
     store = SimpleVectorStore(config)
     
     # Add sample documents and collect their IDs
@@ -113,7 +94,9 @@ def test_save_and_load(sample_documents, tmp_path):
     file_path = tmp_path / "test_vector_store.json"
     
     # Create and save vector store
-    config = VectorStoreConfig()
+    config = VectorStoreConfig(
+        dimension=int(os.getenv("WINDSURF_VECTOR_STORE_DIMENSION", "1024"))
+    )
     store = SimpleVectorStore(config)
     
     # Add documents and collect their IDs

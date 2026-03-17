@@ -8,13 +8,24 @@ from windsurf_agent.exceptions import EmbeddingError, APIError
 
 @pytest.fixture(scope="module")
 def embedding_config():
-    return EmbeddingConfig(
-        base_url=os.getenv("WINDSURF_EMBEDDING_BASE_URL", "https://test-embedding.windsurf.ai/v1"),
+    config = EmbeddingConfig(
+        base_url=os.getenv("WINDSURF_EMBEDDING_BASE_URL", ""),
         api_key=os.getenv("WINDSURF_EMBEDDING_API_KEY", "test_api_key"),
-        model=os.getenv("WINDSURF_EMBEDDING_MODEL", "test-embedding-model"),
-        timeout=int(os.getenv("WINDSURF_EMBEDDING_TIMEOUT", "5")),
+        model=os.getenv("WINDSURF_EMBEDDING_MODEL", "nvidia/nv-embedqa-e5-v5"),
+        query_model=os.getenv("WINDSURF_EMBEDDING_QUERY_MODEL", "nvidia/nv-embedqa-e5-v5-query"),
+        passage_model=os.getenv("WINDSURF_EMBEDDING_PASSAGE_MODEL", "nvidia/nv-embedqa-e5-v5-passage"),
+        timeout=int(os.getenv("WINDSURF_EMBEDDING_TIMEOUT", "30")),
         max_retries=int(os.getenv("WINDSURF_EMBEDDING_MAX_RETRIES", "3"))
     )
+    
+    print(f"\n=== Embedding Configuration Validation ===")
+    print(f"Embedding Base URL: {config.base_url}")
+    print(f"Embedding Model: {config.model}")
+    print(f"Query Model: {config.query_model}")
+    print(f"Passage Model: {config.passage_model}")
+    print(f"========================================\n")
+    
+    return config
 
 @pytest.fixture
 def mock_embedding_response():
@@ -27,9 +38,21 @@ def mock_embedding_response():
 
 def test_get_embedding_success(embedding_config, mock_embedding_response):
     with responses.RequestsMock() as rsps:
+        # Use the base URL from config to construct the endpoint
+        base_url = embedding_config.base_url.rstrip('/')
+        if 'endpoints' in base_url.lower():
+            # For Cloudera ML endpoints
+            url = base_url
+            if not url.endswith('/v1'):
+                url = f"{url}/v1"
+            url = f"{url}/embeddings"
+        else:
+            # For standard endpoints
+            url = f"{base_url}/embeddings"
+        
         rsps.add(
             responses.POST,
-            "https://test-embedding.windsurf.ai/v1/embeddings",
+            url,
             json=mock_embedding_response,
             status=200
         )
@@ -50,9 +73,21 @@ def test_get_embeddings_success(embedding_config):
         ]
     }
     
+    # Use the base URL from config to construct the endpoint
+    base_url = embedding_config.base_url.rstrip('/')
+    if 'endpoints' in base_url.lower():
+        # For Cloudera ML endpoints
+        url = base_url
+        if not url.endswith('/v1'):
+            url = f"{url}/v1"
+        url = f"{url}/embeddings"
+    else:
+        # For standard endpoints
+        url = f"{base_url}/embeddings"
+    
     responses.add(
         responses.POST,
-        f"{embedding_config.base_url}/embeddings",
+        url,
         json=mock_response,
         status=200
     )
@@ -66,13 +101,25 @@ def test_get_embeddings_success(embedding_config):
 
 def test_get_embedding_api_error(embedding_config):
     with responses.RequestsMock() as rsps:
+        # Use the base URL from config to construct the endpoint
+        base_url = embedding_config.base_url.rstrip('/')
+        if 'endpoints' in base_url.lower():
+            # For Cloudera ML endpoints
+            url = base_url
+            if not url.endswith('/v1'):
+                url = f"{url}/v1"
+            url = f"{url}/embeddings"
+        else:
+            # For standard endpoints
+            url = f"{base_url}/embeddings"
+        
         rsps.add(
             responses.POST,
-            "https://test-embedding.windsurf.ai/v1/embeddings",
+            url,
             json={"error": "Invalid request"},
             status=400
         )
         
         client = WindsurfEmbeddingClient(embedding_config)
-        with pytest.raises(APIError):
+        with pytest.raises(EmbeddingError):
             client.get_embedding("test text")

@@ -10,16 +10,18 @@ from windsurf_agent.vector_store import Document
 def mock_config():
     return Config.from_dict({
         "embedding": {
-            "base_url": os.getenv("WINDSURF_EMBEDDING_BASE_URL", "https://test-embedding.windsurf.ai/v1"),
+            "base_url": os.getenv("WINDSURF_EMBEDDING_BASE_URL", ""),
             "api_key": os.getenv("WINDSURF_EMBEDDING_API_KEY", "test_api_key"),
-            "model": os.getenv("WINDSURF_EMBEDDING_MODEL", "test-embedding-model"),
+            "model": os.getenv("WINDSURF_EMBEDDING_MODEL", "nvidia/nv-embedqa-e5-v5"),
+            "query_model": os.getenv("WINDSURF_EMBEDDING_QUERY_MODEL", "nvidia/nv-embedqa-e5-v5-query"),
+            "passage_model": os.getenv("WINDSURF_EMBEDDING_PASSAGE_MODEL", "nvidia/nv-embedqa-e5-v5-passage"),
             "timeout": int(os.getenv("WINDSURF_EMBEDDING_TIMEOUT", "30")),
             "max_retries": int(os.getenv("WINDSURF_EMBEDDING_MAX_RETRIES", "3"))
         },
         "llm": {
-            "base_url": os.getenv("WINDSURF_LLM_BASE_URL", "https://test-llm.windsurf.ai/v1"),
+            "base_url": os.getenv("WINDSURF_LLM_BASE_URL", ""),
             "api_key": os.getenv("WINDSURF_LLM_API_KEY", "test_api_key"),
-            "model": "test-llm-model",
+            "model": os.getenv("WINDSURF_LLM_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5"),
             "temperature": 0.7,
             "max_tokens": 100,
             "timeout": 30,
@@ -28,12 +30,23 @@ def mock_config():
         "vector_store": {
             "persist_dir": None,
             "collection_name": "test_collection",
-            "similarity_metric": "cosine"
+            "similarity_metric": "cosine",
+            "dimension": 1024
         },
         "log_level": "INFO"
     })
 
 def test_agent_initialization(mock_config):
+    """Test agent initialization with mock configuration."""
+    print(f"\n=== Model Endpoint Validation ===")
+    print(f"LLM Base URL: {mock_config.llm.base_url}")
+    print(f"LLM Model: {mock_config.llm.model}")
+    print(f"Embedding Base URL: {mock_config.embedding.base_url}")
+    print(f"Embedding Model: {mock_config.embedding.model}")
+    print(f"Embedding Query Model: {mock_config.embedding.query_model}")
+    print(f"Embedding Passage Model: {mock_config.embedding.passage_model}")
+    print(f"================================\n")
+    
     with patch('windsurf_agent.agent.WindsurfEmbeddingClient') as mock_embedding, \
          patch('windsurf_agent.agent.WindsurfLLMClient') as mock_llm, \
          patch('windsurf_agent.agent.SimpleVectorStore') as mock_store:
