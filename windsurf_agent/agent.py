@@ -4,7 +4,7 @@ import numpy as np
 
 from .config import Config
 from .embedding_client import WindsurfEmbeddingClient
-from .llm_client import WindsurfLLMClient
+from .ClouderaLLMClient import ClouderaLLMClient
 from .vector_store import SimpleVectorStore, Document
 from .exceptions import WindsurfError, EmbeddingError, LLMError, VectorStoreError
 
@@ -36,27 +36,55 @@ class WindsurfAgent:
             LLMError: If the request fails
         """
         try:
-            # Get the model name from the LLM config
-            model = self.config.llm.model if hasattr(self.config.llm, 'model') else None
+            # Validate that we're only using Cloudera AI hosted models
+            model = kwargs.get('model', self.llm_client.model)
+            self._validate_cloudera_model(model)
             
-            # Delegate the chat completion to the LLM client
-            response = self.llm_client.chat_complete(
+            # Delegate the chat completion to the Cloudera LLM client
+            response = self.llm_client.chat_completion(
                 messages=messages,
                 model=model,
                 **kwargs
             )
-            return response
+            
+            # ClouderaLLMClient returns a generator, so we need to collect the response
+            return ''.join(response)
         except Exception as e:
             logger.error(f"LLM request failed: {str(e)}")
             raise LLMError(f"Failed to make LLM request: {str(e)}") from e
+
+    def _validate_cloudera_model(self, model: str) -> None:
+        """Validate that the model is a Cloudera AI hosted model.
+        
+        Args:
+            model: The model name to validate
+            
+        Raises:
+            LLMError: If the model is not a Cloudera AI hosted model
+        """
+        # List of allowed Cloudera AI hosted models
+        allowed_models = [
+            "goes---nemotron-v1-5-49b-throughput",
+            "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+            "nvidia/nv-embedqa-e5-v5",
+            "nvidia/nv-embedqa-e5-v5-query",
+            "nvidia/nv-embedqa-e5-v5-passage"
+        ]
+        
+        if model not in allowed_models:
+            raise LLMError(
+                f"Model '{model}' is not allowed. Only Cloudera AI hosted models are permitted: "
+                f"{', '.join(allowed_models)}"
+            )
 
     def _setup_clients(self):
         """Set up the required clients."""
         try:
             self.embedding_client = WindsurfEmbeddingClient(self.config.embedding)
-            self.llm_client = WindsurfLLMClient(self.config.llm)
+            # Use ClouderaLLMClient to ensure only Cloudera AI hosted models are used
+            self.llm_client = ClouderaLLMClient()
             self.vector_store = SimpleVectorStore(self.config.vector_store)
-            logger.info("WindsurfAgent initialized successfully")
+            logger.info("WindsurfAgent initialized successfully with Cloudera AI LLM only")
         except Exception as e:
             logger.error(f"Failed to initialize WindsurfAgent: {str(e)}")
             raise
@@ -155,12 +183,23 @@ class WindsurfAgent:
             The generated text.
         """
         try:
-            return self.llm_client.complete(
-                prompt=prompt,
-                temperature=temperature,
-                max_tokens=max_tokens,
+            # Validate model
+            model = kwargs.get('model', self.llm_client.model)
+            self._validate_cloudera_model(model)
+            
+            # Convert prompt to messages format for chat completion
+            messages = [{"role": "user", "content": prompt}]
+            
+            # Use chat completion for text generation
+            response = self.llm_client.chat_completion(
+                messages=messages,
+                model=model,
+                temperature=temperature or 0.2,
+                max_tokens=max_tokens or 1024,
                 **kwargs
             )
+            
+            return ''.join(response)
         except Exception as e:
             logger.error(f"Text generation failed: {str(e)}")
             raise LLMError(f"Text generation failed: {str(e)}") from e
@@ -179,22 +218,24 @@ class WindsurfAgent:
             LLMError: If the request fails
         """
         try:
-            # Get LLM config with fallbacks
-            llm_config = self.config.llm
-            model = getattr(llm_config, 'model', 'gpt-4')
-            temperature = kwargs.get("temperature", getattr(llm_config, 'temperature', 0.7))
-            max_tokens = kwargs.get("max_tokens", getattr(llm_config, 'max_tokens', 2048))
+            # Validate model
+            model = kwargs.get('model', self.llm_client.model)
+            self._validate_cloudera_model(model)
             
-            # Call the LLM client's chat method (not chat_complete)
-            response = self.llm_client.chat(
+            temperature = kwargs.get("temperature", 0.2)
+            max_tokens = kwargs.get("max_tokens", 2048)
+            
+            # Call the Cloudera LLM client's chat_completion method
+            response = self.llm_client.chat_completion(
                 messages=messages,
+                model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 **{k: v for k, v in kwargs.items() if k not in ['temperature', 'max_tokens']}
             )
             
-            # The LLM client's chat method already returns the response text
-            return response
+            # ClouderaLLMClient returns a generator, so we need to collect the response
+            return ''.join(response)
             
         except Exception as e:
             logger.error(f"Chat completion failed: {str(e)}")

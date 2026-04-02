@@ -25,49 +25,32 @@ class WindsurfEmbeddingClient:
     def __init__(self, config: EmbeddingConfig):
         self.config = config
         self.session = requests.Session()
-        
-        # Set headers - include Cloudera-specific headers if needed
-        headers = {
+        self.session.headers.update({
             "Authorization": f"Bearer {config.api_key}",
             "Content-Type": "application/json"
-        }
-        
-        # Add Cloudera-specific headers for ML endpoints
-        if 'endpoints' in config.base_url.lower():
-            headers.update({
-                "X-Requested-By": "cascade-agent",
-                "X-XSRF-Header": "true"
-            })
-            
-        self.session.headers.update(headers)
+        })
 
     # In embedding_client.py, find the _make_request method and update it:
     def _make_request(self, endpoint: str, payload: dict) -> Any:
         """Make a request to the API with retries and error handling."""
-        # For Cloudera ML endpoints, use the base URL as-is and include model in the payload
-        is_cloudera_ml = 'endpoints' in self.config.base_url.lower()
-        logger.info(f"Is Cloudera ML endpoint: {is_cloudera_ml}")
-        logger.info(f"Base URL: {self.config.base_url}")
-        
-        if is_cloudera_ml:
-            # For Cloudera ML, append /embeddings to the base URL
-            url = f"{self.config.base_url.rstrip('/')}/embeddings"
-            logger.info(f"Using Cloudera ML URL: {url}")
+        # Use the same URL construction as LLM client
+        base_url = self.config.base_url.strip()
+        if not base_url:
+            raise ValueError("Base URL is not configured")
             
-            # Ensure the payload has the required input_type for Cloudera ML
-            if 'input_type' not in payload:
-                payload['input_type'] = 'passage'  # Default to 'passage' if not specified
-        else:
-            # For standard endpoints, append the endpoint to the base URL
-            url = f"{self.config.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
-            logger.info(f"Using standard endpoint URL: {url}")
+        # Ensure base_url has a scheme
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+            
+        # Remove any trailing slashes from base_url and leading slashes from endpoint
+        base_url = base_url.rstrip('/')
+        endpoint = endpoint.lstrip('/')
         
-        logger.info(f"Using URL: {url}")
-        logger.info(f"Full request payload: {json.dumps(payload, indent=2)}")
+        # Construct the full URL
+        url = f"{base_url}/{endpoint}" if endpoint else base_url
         
         logger.info(f"Making request to: {url}")
-        logger.info(f"Request headers: {self.session.headers}")
-        logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
+        logger.info(f"Request payload: {payload}")
         
         @retry(
             stop=stop_after_attempt(self.config.max_retries),
@@ -82,33 +65,17 @@ class WindsurfEmbeddingClient:
                     json=payload,
                     timeout=self.config.timeout
                 )
-                logger.info(f"Response status: {response.status_code}")
-                logger.info(f"Response headers: {dict(response.headers)}")
-                logger.info(f"Response content: {response.text[:500]}...")
+                
+                if response.status_code == 429:
+                    raise RateLimitError("Rate limit exceeded")
                 
                 response.raise_for_status()
                 return response.json()
-                
+            
             except requests.exceptions.RequestException as e:
-                error_msg = f"{getattr(e.response, 'status_code', 'No status')} {getattr(e.response, 'reason', 'No reason')}"
-                if hasattr(e.response, 'text'):
-                    error_msg += f" - {e.response.text}"
-                logger.error(f"API request failed: {error_msg}")
-                raise APIError(f"API request failed: {error_msg}") from e
+                raise APIError(f"API request failed: {str(e)}") from e
 
-        try:
-            return _request_with_retry()
-        except Exception as e:
-            logger.error(f"Request failed after retries: {str(e)}")
-            raise
-
-    def _before_retry(self, retry_state: RetryCallState) -> None:
-        """Log before retrying a failed request."""
-        if retry_state.outcome and retry_state.outcome.exception():
-            logger.warning(
-                f"Retrying after {retry_state.attempt_number} attempts: "
-                f"{str(retry_state.outcome.exception())}"
-            )
+        return _request_with_retry()
 
     def get_embedding(self, text: str, input_type: str = None) -> List[float]:
         """Get embedding for a single text.

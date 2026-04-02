@@ -49,8 +49,7 @@ class ClouderaConfig(Config):
             ),
             # Keep other configs as is
             embedding=config.embedding,
-            vector_store=config.vector_store,
-            log_level=config.log_level
+            vector_store=config.vector_store
         )
 
 def enforce_cloudera_models():

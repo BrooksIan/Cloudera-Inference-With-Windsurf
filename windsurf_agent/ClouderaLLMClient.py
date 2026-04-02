@@ -9,11 +9,21 @@ from pathlib import Path
 class ClouderaLLMClient:
     def __init__(self):
         # Ensure we're only using Cloudera endpoints
-        self.base_url = os.getenv("WINDSURF_LLM_BASE_URL")
-        if not self.base_url or "cloudera.site" not in self.base_url:
+        self.base_url = os.getenv("WINDSURF_LLM_BASE_URL", "")
+        
+        # Remove quotes if present
+        self.base_url = self.base_url.strip('"\'')
+        
+        if not self.base_url:
+            raise ValueError("WINDSURF_LLM_BASE_URL is required")
+        
+        if "cloudera.site" not in self.base_url:
             raise ValueError("Only Cloudera ML endpoints are allowed")
 
-        self.api_key = os.getenv("WINDSURF_LLM_API_KEY")
+        self.api_key = os.getenv("WINDSURF_LLM_API_KEY", "")
+        if not self.api_key:
+            raise ValueError("WINDSURF_LLM_API_KEY is required")
+            
         self.model = os.getenv("WINDSURF_LLM_MODEL", "goes---nemotron-v1-5-49b-throughput")
 
         self.client = OpenAI(

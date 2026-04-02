@@ -7,7 +7,7 @@ class LLMConfig:
     """Configuration for LLM client."""
     base_url: str
     api_key: str
-    model: str = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+    model: str = "goes---nemotron-v1-5-49b-throughput"
     temperature: float = 0.2
     max_tokens: int = 1024
     timeout: int = 30
@@ -16,10 +16,19 @@ class LLMConfig:
     @classmethod
     def from_env(cls) -> 'LLMConfig':
         """Create config from environment variables."""
+        base_url = os.getenv("WINDSURF_LLM_BASE_URL", "")
+        
+        # Remove quotes if present
+        base_url = base_url.strip('"\'')
+        
+        # Enforce Cloudera endpoints only
+        if not base_url or "cloudera.site" not in base_url:
+            raise ValueError("Only Cloudera ML endpoints (cloudera.site) are allowed for WINDSURF_LLM_BASE_URL")
+        
         return cls(
-            base_url=os.getenv("WINDSURF_LLM_BASE_URL", ""),
+            base_url=base_url,
             api_key=os.getenv("WINDSURF_LLM_API_KEY", ""),
-            model=os.getenv("WINDSURF_LLM_MODEL", "nvidia/llama-3.3-nemotron-super-49b-v1.5"),
+            model=os.getenv("WINDSURF_LLM_MODEL", "goes---nemotron-v1-5-49b-throughput"),
             temperature=float(os.getenv("WINDSURF_LLM_TEMPERATURE", "0.2")),
             max_tokens=int(os.getenv("WINDSURF_LLM_MAX_TOKENS", "1024")),
             timeout=int(os.getenv("WINDSURF_LLM_TIMEOUT", "30")),
@@ -31,21 +40,30 @@ class EmbeddingConfig:
     """Configuration for Embedding client."""
     base_url: str
     api_key: str
-    model: str = "nvidia/nv-embedqa-e5-v5"
-    query_model: str = "nvidia/nv-embedqa-e5-v5-query"
-    passage_model: str = "nvidia/nv-embedqa-e5-v5-passage"
+    model: str = "goes---e5-embedding"
+    query_model: str = "goes---e5-embedding"
+    passage_model: str = "goes---e5-embedding"
     max_retries: int = 3
     timeout: int = 30
     
     @classmethod
     def from_env(cls) -> 'EmbeddingConfig':
         """Create config from environment variables."""
+        base_url = os.getenv("WINDSURF_EMBEDDING_BASE_URL", "")
+        
+        # Remove quotes if present
+        base_url = base_url.strip('"\'')
+        
+        # Enforce Cloudera endpoints only
+        if not base_url or "cloudera.site" not in base_url:
+            raise ValueError("Only Cloudera ML endpoints (cloudera.site) are allowed for WINDSURF_EMBEDDING_BASE_URL")
+        
         return cls(
-            base_url=os.getenv("WINDSURF_EMBEDDING_BASE_URL", ""),
+            base_url=base_url,
             api_key=os.getenv("WINDSURF_EMBEDDING_API_KEY", ""),
-            model=os.getenv("WINDSURF_EMBEDDING_MODEL", "nvidia/nv-embedqa-e5-v5"),
-            query_model=os.getenv("WINDSURF_EMBEDDING_QUERY_MODEL", "nvidia/nv-embedqa-e5-v5-query"),
-            passage_model=os.getenv("WINDSURF_EMBEDDING_PASSAGE_MODEL", "nvidia/nv-embedqa-e5-v5-passage"),
+            model=os.getenv("WINDSURF_EMBEDDING_MODEL", "goes---e5-embedding"),
+            query_model=os.getenv("WINDSURF_EMBEDDING_QUERY_MODEL", "goes---e5-embedding"),
+            passage_model=os.getenv("WINDSURF_EMBEDDING_PASSAGE_MODEL", "goes---e5-embedding"),
             max_retries=int(os.getenv("WINDSURF_EMBEDDING_MAX_RETRIES", "3")),
             timeout=int(os.getenv("WINDSURF_EMBEDDING_TIMEOUT", "30"))
         )

@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+"""
+MLB Standings Checker - Fixed by Cloudera AI
+🔒 This code was fixed by Cloudera-hosted models
+🤖 Model: nvidia/llama-3.3-nemotron-super-49b-v1.5
+🔒 Enterprise-grade AI processing - Tables Fixed
+🚫 NO WINDSURF MODELS USED - PURE CLOUdera AI
+"""
+
+import requests
+from datetime import datetime
+from typing import Dict, List, Optional
+
+class MLBStandingsChecker:
+    """MLB Standings Checker - Generated and Fixed by Cloudera AI."""
+    
+    def __init__(self):
+        """Initialize the MLB standings checker - Cloudera AI generated."""
+        self.base_url = "https://statsapi.mlb.com/api/v1"
+        self.current_year = datetime.now().year
+        print("🔒 MLB Standings Checker initialized with Cloudera AI assistance")
+        
+    def fetch_standings(self, league_id: int) -> Optional[List]:
+        """
+        Fetch standings for a specific league - Cloudera AI fixed this method.
+        
+        Args:
+            league_id: League ID (103 for AL, 104 for NL)
+            
+        Returns:
+            List of division standings data or None if error
+        """
+        try:
+            params = {
+                'leagueId': league_id,
+                'season': self.current_year
+            }
+            
+            print(f"🔒 Fetching standings for league {league_id}...")
+            response = requests.get(f"{self.base_url}/standings", params=params, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            return data.get('records', [])
+            
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Error fetching standings: {e}")
+            return None
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            return None
+    
+    def format_team_record(self, team_record: Dict) -> str:
+        """
+        Format a single team record for table display - Cloudera AI fixed formatting.
+        
+        Args:
+            team_record: Team record data from API
+            
+        Returns:
+            Formatted string for table row
+        """
+        team = team_record.get('team', {})
+        
+        team_name = team.get('name', 'Unknown')
+        wins = team_record.get('wins', 0)
+        losses = team_record.get('losses', 0)
+        games_back = team_record.get('gamesBack', '0')
+        streak = team_record.get('streak', {}).get('streakCode', '-')
+        
+        # Calculate winning percentage
+        total_games = wins + losses
+        win_pct = wins / total_games if total_games > 0 else 0.000
+        
+        # Format table row with proper alignment
+        return f"{team_name:<20} {wins:>3} {losses:>3} {win_pct:.3f} {games_back:>5} {streak:>4}"
+    
+    def display_division_standings(self, division_data: Dict) -> None:
+        """
+        Display standings for a single division - Cloudera AI fixed table formatting.
+        
+        Args:
+            division_data: Division standings data
+        """
+        if not division_data:
+            return
+        
+        # Get division ID and map to name
+        division = division_data.get('division', {})
+        division_id = division.get('id', 0)
+        
+        # Map division IDs to names
+        division_names = {
+            201: "AL East",
+            202: "AL Central", 
+            203: "AL West",
+            204: "NL East",
+            205: "NL Central",
+            206: "NL West",
+            200: "AL West"  # Some API responses use 200 for AL West
+        }
+        
+        division_name = division_names.get(division_id, f"Division {division_id}")
+        team_records = division_data.get('teamRecords', [])
+        
+        if not team_records:
+            print(f"🔒 No team records found for {division_name}")
+            return
+        
+        print(f"\n🏆 {division_name}")
+        print("=" * 60)
+        print(f"{'Team':<20} {'W':>3} {'L':>3} {'PCT':>6} {'GB':>5} {'STRK':>4}")
+        print("-" * 60)
+        
+        for team_record in team_records:
+            formatted_row = self.format_team_record(team_record)
+            print(formatted_row)
+    
+    def display_league_standings(self, league_id: int, league_name: str) -> None:
+        """
+        Display all division standings for a league - Cloudera AI fixed this.
+        
+        Args:
+            league_id: League ID (103 for AL, 104 for NL)
+            league_name: League name for display
+        """
+        print(f"\n🏆 {league_name} STANDINGS")
+        print("=" * 70)
+        
+        divisions_data = self.fetch_standings(league_id)
+        
+        if not divisions_data:
+            print(f"❌ No {league_name} standings data available")
+            return
+        
+        for division in divisions_data:
+            self.display_division_standings(division)
+    
+    def display_all_mlb_standings(self) -> None:
+        """
+        Display all MLB standings - Cloudera AI fixed this method.
+        """
+        print("⚾ MLB STANDINGS - Generated by Cloudera AI")
+        print("🔒 Enterprise-grade AI processing with fixed tables")
+        print("=" * 70)
+        
+        # Display American League
+        self.display_league_standings(103, "AMERICAN LEAGUE")
+        
+        print("\n" + "=" * 70)
+        
+        # Display National League
+        self.display_league_standings(104, "NATIONAL LEAGUE")
+        
+        print("\n" + "=" * 70)
+        print("🔒 Cloudera AI table formatting complete")
+        print("📊 Data sourced from MLB Stats API")
+        print("⚾ MLB™ is a trademark of Major League Baseball")
+
+def main():
+    """Main function - Generated and Fixed by Cloudera AI."""
+    print("⚾ MLB Standings Checker - Fixed by Cloudera AI")
+    print("🔒 Generated by Cloudera-hosted AI models ONLY")
+    print("🚫 NO Windsurf models were used in generation")
+    print("🔧 Table formatting issues fixed by Cloudera AI")
+    print("=" * 70)
+    
+    # Initialize the checker
+    checker = MLBStandingsChecker()
+    
+    # Display all standings
+    checker.display_all_mlb_standings()
+
+if __name__ == "__main__":
+    main()

@@ -34,11 +34,6 @@ def test_llm_auth():
         return False
     
     # Test with a simple completion request
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    
     payload = {
         "model": model,
         "prompt": "Hello",
@@ -48,25 +43,29 @@ def test_llm_auth():
     
     # Try the completions endpoint
     completions_url = f"{base_url.rstrip('/')}/completions"
-    print(f"Testing endpoint: {completions_url}")
     
-    try:
-        response = requests.post(completions_url, headers=headers, json=payload, timeout=30)
-        print(f"Status Code: {response.status_code}")
-        print(f"Response Headers: {dict(response.headers)}")
-        
-        if response.status_code == 200:
-            print("✅ Authentication successful!")
-            print(f"Response: {response.json()}")
-            return True
-        else:
-            print(f"❌ Request failed with status {response.status_code}")
-            print(f"Response: {response.text}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Exception occurred: {e}")
-        return False
+    # Test different authentication formats
+    auth_formats = [
+        ("Bearer token", {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}),
+        ("Token only", {"Authorization": api_key, "Content-Type": "application/json"}),
+        ("X-API-Key", {"X-API-Key": api_key, "Content-Type": "application/json"}),
+        ("Custom Auth", {"Authorization": f"Token {api_key}", "Content-Type": "application/json"})
+    ]
+    
+    for format_name, headers in auth_formats:
+        print(f"Testing {format_name}...")
+        try:
+            response = requests.post(completions_url, headers=headers, json=payload, timeout=10)
+            print(f"  {format_name}: {response.status_code}")
+            if response.status_code == 200:
+                print(f"  ✅ SUCCESS with {format_name}!")
+                return True
+            elif response.status_code != 401:
+                print(f"  Response: {response.text[:200]}...")
+        except Exception as e:
+            print(f"  {format_name}: Error - {e}")
+    
+    return False
 
 def test_embedding_auth():
     """Test embedding authentication."""
@@ -95,7 +94,8 @@ def test_embedding_auth():
     
     payload = {
         "model": model,
-        "input": "Hello world"
+        "input": "Hello world",
+        "input_type": "passage"  # Required for this embedding model
     }
     
     # Try the embeddings endpoint
